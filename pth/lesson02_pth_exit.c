@@ -37,7 +37,6 @@ void *pth_fun(void *pth_arg)
     while (1) {
         write(fd, "hello ", 6);
         write(fd, "world\n", 6);
-        printf("###\n");
         // 检测退出状态
         if (glbva.pth_exit_flg[pthno] == PTH_EXIT) break; 
     }
@@ -71,6 +70,8 @@ int main(int argc, char *argv[])
         int ret = pthread_create(&glbva.pth_arg[i].tid, NULL, pth_fun, &glbva.pth_arg[i]);
         if (ret != 0) print_err("pthread_create fail", __LINE__, ret);
     }
+
+    printf("man tid = %lu\n", pthread_self());
 
     /* 定时 5 秒，时间到后，取消次线程 */
     signal(SIGALRM, sig_fun);
