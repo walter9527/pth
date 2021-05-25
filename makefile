@@ -6,7 +6,7 @@ DIR_OBJ = $(BUILD)/obj
 TARGET	= main
 
 # 模块所在目录
-SRCS	= $(wildcard pth/lesson01_helloworld.c common/*.c)
+SRCS	= $(wildcard pth/lesson02_pth_create.c common/*.c)
 OBJS	= $(addprefix $(DIR_OBJ)/, $(patsubst %.c, %.o, $(SRCS)))
 
 INCLUDES = -I include
@@ -35,7 +35,7 @@ all:
 
 $(TARGET):$(OBJS)
 	@echo "7.生成可执行文件" 
-	$(CC) $^ -o $(BUILD)/$@
+	$(CC) $^ -o $(BUILD)/$@ -pthread
 	@echo "8.编译成功" 
 $(DIR_OBJ)/%.o:%.c
 	@echo "6.生成目标文件"

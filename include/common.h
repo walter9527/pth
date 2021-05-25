@@ -36,6 +36,8 @@
 
 #include <sys/sem.h>
 
+#include <pthread.h>
+
 extern char **environ;
 
 extern void is_err(ssize_t ret, char *opt); 
