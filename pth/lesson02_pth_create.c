@@ -10,6 +10,7 @@ typedef struct pthread_arg {
     int fd;
 } ptharg;
 
+ptharg pth_arg[SUB_PTH_NUMS]; // 结构体数组，每个元素会被当做参数传递给对应过的次线程
 
 // strerror 能把 errno 翻译成对应的文字
 void print_err(char *str, int line, int err_no)
@@ -31,15 +32,23 @@ void *pth_fun(void *pth_arg)
         write(fd, "hello ", 6);
         sleep(1);
         write(fd, "world\n", 6);
+        printf("###\n");
     }
-
+    
     return NULL;
 }
 
+void sig_fun(int signo)
+{
+    if (signo == SIGALRM) {
+        for (int i = 0; i < SUB_PTH_NUMS; i++) {
+            pthread_cancel(pth_arg[i].tid);
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
-    ptharg pth_arg[SUB_PTH_NUMS]; // 结构体数组，每个元素会被当做参数传递给对应过的次线程
 
     // 打开文件，供线程操作，所有的线程（函数）可以共享打开的文件描述符
     int fd = open(PTH_FILE, O_RDWR | O_CREAT | O_TRUNC, 0644);
@@ -54,6 +63,10 @@ int main(int argc, char *argv[])
         int ret = pthread_create(&pth_arg[i].tid, NULL, pth_fun, &pth_arg[i]);
         if (ret != 0) print_err("pthread_create fail", __LINE__, ret);
     }
+
+    /* 定时 5 秒，时间到后，取消次线程 */
+    signal(SIGALRM, sig_fun);
+    alarm(5);
 
     while (1) {
         write(fd, "hello ", 6);
