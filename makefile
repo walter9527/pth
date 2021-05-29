@@ -6,7 +6,7 @@ DIR_OBJ = $(BUILD)/obj
 TARGET	= main
 
 # 模块所在目录
-SRCS	= $(wildcard pth/lesson02_pth_join.c common/*.c)
+SRCS	= $(wildcard pth/lesson03_pth_cleanup.c common/*.c)
 OBJS	= $(addprefix $(DIR_OBJ)/, $(patsubst %.c, %.o, $(SRCS)))
 
 INCLUDES = -I include
