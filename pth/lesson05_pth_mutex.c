@@ -17,7 +17,11 @@ struct globle_va
     ptharg pth_arg[SUB_PTH_NUMS]; // 结构体数组，每个元素会被当做参数传递给对应过的次线程
     int pth_exit_flg[SUB_PTH_NUMS]; // 每个元素存放对应编号线程的退出状态
     pthread_attr_t attr; // 存放线程新属性
-} glbva;
+
+    pthread_mutex_t mutex; // 互斥锁
+} glbva = {.mutex = PTHREAD_MUTEX_INITIALIZER}; // 结构体个别初始化
+
+// pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // 互斥锁
 
 // strerror 能把 errno 翻译成对应的文字
 void print_err(char *str, int line, int err_no)
@@ -49,10 +53,12 @@ void *pth_fun(void *pth_arg)
     printf("pthno=%d, tid=%lu\n", pthno, tid);
 
     while (1) {
+        pthread_mutex_lock(&glbva.mutex); // 加锁
         write(fd, "hello ", 6);
         write(fd, "world\n", 6);
         // 检测退出状态
         if (glbva.pth_exit_flg[pthno] == PTH_EXIT) break; 
+        pthread_mutex_unlock(&glbva.mutex); // 解锁
     }
     
     pthread_exit((void *)10); // 可以替代 return
@@ -68,16 +74,21 @@ void sig_fun(int signo)
            // glbva.pth_exit_flg[i] = PTH_EXIT; // 设置为退出状态
         }
     } else if (signo == SIGINT) {
-        int ret = pthread_attr_destroy(&glbva.attr);
-        if (ret != 0) print_err("pthread_attr_destroy fail", __LINE__, ret);
-
-        remove(PTH_FILE);
+        //remove(PTH_FILE);
         exit(0);
     }
 }
 
 void process_exit_deal(void)
 {
+    // 销毁线程的属性设置
+    int ret = pthread_attr_destroy(&glbva.attr);
+    if (ret != 0) print_err("pthread_attr_destroy fail", __LINE__, ret);
+
+    // 销毁互斥锁
+    ret = pthread_mutex_destroy(glbva.mutex);
+    if (ret != 0) print_err("pthread_mutex_destroy fail", __LINE__, ret);
+
     printf("process exit\n");
 }
 
@@ -85,6 +96,9 @@ int main(int argc, char *argv[])
 {
     // 注册进程退出处理函数，exit 正常终止进程时弹栈调用
     atexit(process_exit_deal);
+
+    // 初始化互斥锁
+    // pthread_mutex_init(&glbva.mutex, NULL);
 
     // 打开文件，供线程操作，所有的线程（函数）可以共享打开的文件描述符
     int fd = open(PTH_FILE, O_RDWR | O_CREAT | O_TRUNC, 0644);
@@ -113,7 +127,7 @@ int main(int argc, char *argv[])
 
     signal(SIGINT, sig_fun);
 
-    /* 定时 5 秒，时间到后，取消次线程 */
+    /* 定时 3 秒，时间到后，取消次线程 */
     signal(SIGALRM, sig_fun);
     alarm(3);
 
@@ -126,8 +140,10 @@ int main(int argc, char *argv[])
 #endif
 
     while (1) {
+        pthread_mutex_lock(&glbva.mutex); // 加锁
         write(fd, "hello ", 6);
         write(fd, "world\n", 6);
+        pthread_mutex_unlock(&glbva.mutex); // 解锁
     }
 
     return 0;
